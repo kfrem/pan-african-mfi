@@ -1,0 +1,75 @@
+{% extends "reports/base_report.html" %}
+{% block content %}
+
+<!-- Cover Page -->
+<div class="cover-page">
+  <div class="header-logo" style="width:60pt;height:60pt;font-size:28pt;border-radius:12pt;">
+    {{ institution_name.0 }}
+  </div>
+  <div class="cover-title">{{ report_title }}</div>
+  <div class="cover-subtitle">{{ period }}</div>
+  <div class="cover-institution">
+    {{ institution_name }}<br>
+    <span style="font-size:9pt;color:#94a3b8;">Prepared for {{ investor_name }}</span>
+  </div>
+  <div class="cover-period">{{ generated_date }}</div>
+</div>
+<div class="page-break"></div>
+
+<!-- Report Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">{{ institution_name.0 }}</div>
+    <div>
+      <div class="header-name">{{ institution_name }}</div>
+      <div class="header-sub">Investor Report · {{ period }}</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-period">{{ investor_name }}</div>
+    <div class="header-period">{{ investor_type }} · {{ investment_currency }}</div>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-box">
+    <div class="kpi-label">Total Portfolio</div>
+    <div class="kpi-value">{{ currency }} {{ total_portfolio|floatformat:0 }}</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-label">Active Loans</div>
+    <div class="kpi-value">{{ active_loans }}</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-label">PAR > 30 Days</div>
+    <div class="kpi-value {% if par30_pct > 5 %}text-red{% elif par30_pct > 3 %}text-amber{% else %}text-green{% endif %}">
+      {{ par30_pct|floatformat:1 }}%
+    </div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-label">Avg Interest Rate</div>
+    <div class="kpi-value">{{ avg_interest_rate|floatformat:1 }}%</div>
+  </div>
+</div>
+
+<!-- Investment Summary -->
+<div class="section">
+  <div class="section-title">Your Investment</div>
+  <table>
+    <tr><td>Invested Amount</td><td class="text-right font-bold">{{ investment_currency }} {{ invested_amount|floatformat:0 }}</td></tr>
+    <tr><td>Investment Date</td><td class="text-right">{{ investment_date }}</td></tr>
+    <tr><td>Portfolio at Risk (PAR30)</td><td class="text-right">{{ currency }} {{ par30_amount|floatformat:0 }} ({{ par30_pct|floatformat:1 }}%)</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">Portfolio Quality</div>
+  <p style="font-size:9pt;color:#475569;margin-bottom:8pt;">
+    Portfolio quality remains strong with PAR30 at {{ par30_pct|floatformat:1 }}%.
+    The institution maintains {{ active_loans }} active loans with a total outstanding portfolio
+    of {{ currency }} {{ total_portfolio|floatformat:0 }}.
+  </p>
+</div>
+
+{% endblock %}

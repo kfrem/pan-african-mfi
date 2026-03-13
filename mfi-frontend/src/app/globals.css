@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── THEME: Bloomberg Dark (default for investors) ─── */
+:root, [data-theme="bloomberg"] {
+  --brand-primary: #0066ff;
+  --brand-secondary: #8b5cf6;
+  --brand-accent: #06b6d4;
+  --brand-primary-glow: rgba(0, 102, 255, 0.15);
+  --surface-bg: #060a14;
+  --surface-card: #0c1222;
+  --surface-hover: #111b30;
+  --surface-border: #1a2744;
+  --content-primary: #e2e8f0;
+  --content-secondary: #7b8ba5;
+  --content-muted: #4a5974;
+  --sidebar-bg: #070c18;
+  --sidebar-border: #141f38;
+  --sidebar-active: rgba(0, 102, 255, 0.15);
+  --chart-1: #0066ff;
+  --chart-2: #8b5cf6;
+  --chart-3: #06b6d4;
+  --chart-4: #10b981;
+  --chart-5: #f59e0b;
+}
+
+/* ─── THEME: Professional Light (default for operations) ─── */
+[data-theme="professional"] {
+  --brand-primary: #1b3a6b;
+  --brand-secondary: #2563eb;
+  --brand-accent: #0891b2;
+  --brand-primary-glow: rgba(27, 58, 107, 0.1);
+  --surface-bg: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-hover: #f1f5f9;
+  --surface-border: #e2e8f0;
+  --content-primary: #0f172a;
+  --content-secondary: #475569;
+  --content-muted: #94a3b8;
+  --sidebar-bg: #0f172a;
+  --sidebar-border: #1e293b;
+  --sidebar-active: rgba(37, 99, 235, 0.15);
+  --chart-1: #1b3a6b;
+  --chart-2: #2563eb;
+  --chart-3: #0891b2;
+  --chart-4: #059669;
+  --chart-5: #d97706;
+}
+
+/* ─── THEME: Emerald Finance ─── */
+[data-theme="emerald"] {
+  --brand-primary: #1a4731;
+  --brand-secondary: #059669;
+  --brand-accent: #d97706;
+  --brand-primary-glow: rgba(26, 71, 49, 0.15);
+  --surface-bg: #faf9f7;
+  --surface-card: #ffffff;
+  --surface-hover: #f0fdf4;
+  --surface-border: #d1d5db;
+  --content-primary: #111827;
+  --content-secondary: #4b5563;
+  --content-muted: #9ca3af;
+  --sidebar-bg: #1a4731;
+  --sidebar-border: #15803d;
+  --sidebar-active: rgba(5, 150, 105, 0.2);
+  --chart-1: #1a4731;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #2563eb;
+  --chart-5: #7c3aed;
+}
+
+/* ─── THEME: Slate Pro ─── */
+[data-theme="slate"] {
+  --brand-primary: #0d9488;
+  --brand-secondary: #475569;
+  --brand-accent: #0ea5e9;
+  --brand-primary-glow: rgba(13, 148, 136, 0.15);
+  --surface-bg: #0f172a;
+  --surface-card: #1e293b;
+  --surface-hover: #334155;
+  --surface-border: #334155;
+  --content-primary: #f1f5f9;
+  --content-secondary: #94a3b8;
+  --content-muted: #64748b;
+  --sidebar-bg: #0c1222;
+  --sidebar-border: #1e293b;
+  --sidebar-active: rgba(13, 148, 136, 0.2);
+  --chart-1: #0d9488;
+  --chart-2: #0ea5e9;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ef4444;
+}
+
+/* ─── BASE STYLES ─── */
+@layer base {
+  * { @apply border-surface-border; }
+  body {
+    @apply bg-surface-bg text-content-primary antialiased;
+    font-family: var(--font-sans, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif);
+  }
+  h1, h2, h3, h4, h5, h6 { @apply font-semibold tracking-tight; }
+}
+
+@layer components {
+  .kpi-card {
+    @apply bg-surface-card rounded-card border border-surface-border p-5;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 1px var(--brand-primary-glow);
+  }
+  .kpi-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+    color: var(--content-secondary);
+  }
+  .kpi-value {
+    @apply text-2xl font-bold tracking-tight leading-none mt-2;
+  }
+  .kpi-trend {
+    @apply text-xs mt-2 flex items-center gap-1;
+  }
+
+  .sidebar {
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+  }
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors;
+    color: var(--content-secondary);
+  }
+  .sidebar-item:hover {
+    background: var(--sidebar-active);
+    color: var(--content-primary);
+  }
+  .sidebar-item.active {
+    background: var(--sidebar-active);
+    color: var(--brand-primary);
+    font-weight: 600;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide;
+  }
+  .status-current { @apply bg-status-current/15 text-status-current; }
+  .status-watch { @apply bg-status-watch/15 text-status-watch; }
+  .status-substandard { @apply bg-status-substandard/15 text-status-substandard; }
+  .status-doubtful { @apply bg-status-doubtful/15 text-status-doubtful; }
+  .status-loss { @apply bg-status-loss/15 text-status-loss; }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-all;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+    box-shadow: 0 4px 14px var(--brand-primary-glow);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px var(--brand-primary-glow);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    color: var(--content-primary);
+  }
+  .btn-secondary:hover {
+    background: var(--surface-hover);
+  }
+
+  .card {
+    @apply bg-surface-card rounded-card border border-surface-border p-5;
+  }
+  .card-title {
+    @apply text-xs font-semibold uppercase tracking-widest mb-4;
+    color: var(--content-secondary);
+  }
+
+  /* Offline indicator */
+  .offline-banner {
+    @apply fixed top-0 left-0 right-0 z-50 py-1.5 text-center text-xs font-bold text-white;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+  }
+}
+
+/* Scrollbar styling for dark themes */
+[data-theme="bloomberg"] ::-webkit-scrollbar,
+[data-theme="slate"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme="bloomberg"] ::-webkit-scrollbar-track,
+[data-theme="slate"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="bloomberg"] ::-webkit-scrollbar-thumb,
+[data-theme="slate"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}

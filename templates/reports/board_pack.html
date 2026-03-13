@@ -1,0 +1,121 @@
+{% extends "reports/base_report.html" %}
+{% block content %}
+
+<!-- Cover Page -->
+<div class="cover-page">
+  <div class="header-logo" style="width:60pt;height:60pt;font-size:28pt;border-radius:12pt;">
+    {{ institution_name.0 }}
+  </div>
+  <div class="cover-title">Board Pack</div>
+  <div class="cover-subtitle">{{ period }}</div>
+  <div class="cover-institution">{{ institution_name }}<br>{{ country }}</div>
+  <div class="cover-period">Generated: {{ generated_at }}</div>
+</div>
+<div class="page-break"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">{{ institution_name.0 }}</div>
+    <div>
+      <div class="header-name">{{ institution_name }}</div>
+      <div class="header-sub">Board Pack · {{ period }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Executive Summary KPIs -->
+<div class="section">
+  <div class="section-title">Executive Summary</div>
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">Gross Portfolio</div>
+      <div class="kpi-value">{{ currency }} {{ portfolio_total|floatformat:0 }}</div>
+      <div class="kpi-sub">{{ active_loans_count }} active loans</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">PAR > 30 Days</div>
+      <div class="kpi-value {% if par30_pct > 5 %}text-red{% elif par30_pct > 3 %}text-amber{% else %}text-green{% endif %}">
+        {{ par30_pct|floatformat:1 }}%
+      </div>
+      <div class="kpi-sub">{{ currency }} {{ par30_amount|floatformat:0 }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">PAR > 90 Days</div>
+      <div class="kpi-value {% if par90_pct > 3 %}text-red{% else %}text-green{% endif %}">
+        {{ par90_pct|floatformat:1 }}%
+      </div>
+      <div class="kpi-sub">{{ currency }} {{ par90_amount|floatformat:0 }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">CAR Requirement</div>
+      <div class="kpi-value">{{ car_requirement }}%</div>
+      <div class="kpi-sub">Regulatory minimum</div>
+    </div>
+  </div>
+</div>
+
+<!-- Loan Classification -->
+<div class="section">
+  <div class="section-title">Loan Classification (BoG/BoZ)</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Classification</th>
+        <th class="text-right">Count</th>
+        <th class="text-right">Outstanding ({{ currency }})</th>
+        <th class="text-right">% of Portfolio</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cls_name, cls_data in classifications.items %}
+      <tr>
+        <td>
+          <span class="badge {% if cls_name == 'CURRENT' %}badge-green{% elif cls_name == 'WATCH' %}badge-amber{% else %}badge-red{% endif %}">
+            {{ cls_name }}
+          </span>
+        </td>
+        <td class="text-right">{{ cls_data.count }}</td>
+        <td class="text-right font-bold">{{ cls_data.amount|floatformat:0 }}</td>
+        <td class="text-right">{{ cls_data.pct|floatformat:1 }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="page-break"></div>
+
+<!-- Insider Lending Register -->
+<div class="section">
+  <div class="section-title">Insider Lending Register</div>
+  <p style="font-size:8pt;color:#64748b;margin-bottom:8pt;">
+    Aggregate insider exposure: {{ currency }} {{ insider_total|floatformat:0 }}
+    {% if insider_limit_pct %}(Regulatory limit: {{ insider_limit_pct }}% of capital){% endif %}
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Borrower</th>
+        <th>Relationship</th>
+        <th>Loan Number</th>
+        <th class="text-right">Outstanding ({{ currency }})</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for loan in insider_loans %}
+      <tr>
+        <td class="font-bold">{{ loan.client__full_legal_name }}</td>
+        <td>{{ loan.client__insider_relationship }}</td>
+        <td>{{ loan.loan_number }}</td>
+        <td class="text-right font-bold">{{ loan.outstanding_principal|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+      {% if not insider_loans %}
+      <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:12pt;">No insider loans outstanding</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "reports/base_report.html" %}
+{% block content %}
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">{{ institution_name.0 }}</div>
+    <div>
+      <div class="header-name">{{ institution_name }}</div>
+      <div class="header-sub">Loan Statement</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-title">{{ loan.loan_number }}</div>
+    <div class="header-period">Generated {{ generated_date }}</div>
+  </div>
+</div>
+
+<!-- Client & Loan Details -->
+<div class="section">
+  <div class="section-title">Loan Details</div>
+  <table>
+    <tr><td style="width:30%">Client Name</td><td class="font-bold">{{ client.full_legal_name }}</td></tr>
+    <tr><td>Client Number</td><td>{{ client.client_number }}</td></tr>
+    <tr><td>Loan Product</td><td>{{ loan.product.product_name }}</td></tr>
+    <tr><td>Principal Amount</td><td class="font-bold">{{ loan.currency }} {{ loan.principal_amount|floatformat:2 }}</td></tr>
+    <tr><td>Interest Rate</td><td>{{ loan.interest_rate_pct }}% p.a. ({{ loan.interest_method }})</td></tr>
+    <tr><td>Term</td><td>{{ loan.term_months }} months ({{ loan.repayment_frequency }})</td></tr>
+    <tr><td>Disbursement Date</td><td>{{ loan.disbursement_date|date:"d/m/Y" }}</td></tr>
+    <tr><td>Maturity Date</td><td>{{ loan.maturity_date|date:"d/m/Y" }}</td></tr>
+    <tr><td>Outstanding Balance</td><td class="font-bold">{{ loan.currency }} {{ remaining_balance|floatformat:2 }}</td></tr>
+    <tr><td>Total Repaid</td><td class="text-green font-bold">{{ loan.currency }} {{ total_paid|floatformat:2 }}</td></tr>
+    <tr><td>Status</td><td><span class="badge {% if loan.status == 'CLOSED' %}badge-green{% elif loan.status == 'ACTIVE' %}badge-green{% else %}badge-amber{% endif %}">{{ loan.status }}</span></td></tr>
+    <tr><td>Classification</td><td><span class="badge {% if loan.classification == 'CURRENT' %}badge-green{% elif loan.classification == 'WATCH' %}badge-amber{% else %}badge-red{% endif %}">{{ loan.classification }}</span></td></tr>
+    <tr><td>Loan Officer</td><td>{{ loan.loan_officer.full_name }}</td></tr>
+    <tr><td>Branch</td><td>{{ loan.branch.branch_name }}</td></tr>
+  </table>
+</div>
+
+<!-- Repayment Schedule -->
+<div class="section">
+  <div class="section-title">Repayment Schedule</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Due Date</th>
+        <th class="text-right">Principal</th>
+        <th class="text-right">Interest</th>
+        <th class="text-right">Total Due</th>
+        <th class="text-right">Paid</th>
+        <th>Status</th>
+        <th class="text-right">Days Late</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in schedule %}
+      <tr>
+        <td>{{ s.instalment_number }}</td>
+        <td>{{ s.due_date }}</td>
+        <td class="text-right">{{ s.principal_due|floatformat:2 }}</td>
+        <td class="text-right">{{ s.interest_due|floatformat:2 }}</td>
+        <td class="text-right font-bold">{{ s.total_due|floatformat:2 }}</td>
+        <td class="text-right {% if s.total_paid >= s.total_due %}text-green{% endif %}">{{ s.total_paid|floatformat:2 }}</td>
+        <td>
+          <span class="badge {% if s.status == 'PAID' %}badge-green{% elif s.status == 'OVERDUE' %}badge-red{% elif s.status == 'PARTIAL' %}badge-amber{% endif %}">
+            {{ s.status }}
+          </span>
+        </td>
+        <td class="text-right {% if s.days_late > 0 %}text-red{% endif %}">{{ s.days_late }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Payment History -->
+<div class="section">
+  <div class="section-title">Payment History</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Receipt #</th>
+        <th>Method</th>
+        <th class="text-right">Amount</th>
+        <th class="text-right">Principal</th>
+        <th class="text-right">Interest</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in repayments %}
+      <tr>
+        <td>{{ r.received_at|date:"d/m/Y" }}</td>
+        <td>{{ r.receipt_number }}</td>
+        <td>{{ r.payment_method }}</td>
+        <td class="text-right font-bold text-green">{{ r.amount|floatformat:2 }}</td>
+        <td class="text-right">{{ r.principal_applied|floatformat:2 }}</td>
+        <td class="text-right">{{ r.interest_applied|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+      {% if not repayments %}
+      <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12pt;">No payments recorded</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

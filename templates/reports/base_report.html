@@ -1,0 +1,108 @@
+<!-- Base report template — all reports extend this -->
+<!-- File: templates/reports/base_report.html -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 1.5cm;
+    @bottom-center {
+      content: "{{ page_footer }} " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+    line-height: 1.5;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12pt;
+    border-bottom: 2pt solid {{ primary_colour }};
+    margin-bottom: 16pt;
+  }
+  .header-left { display: flex; align-items: center; gap: 10pt; }
+  .header-logo {
+    width: 36pt; height: 36pt; border-radius: 6pt;
+    background: {{ primary_colour }};
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: bold; font-size: 16pt;
+  }
+  .header-name { font-size: 14pt; font-weight: bold; color: {{ primary_colour }}; }
+  .header-sub { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5pt; }
+  .header-right { text-align: right; }
+  .header-title { font-size: 16pt; font-weight: bold; color: #0f172a; }
+  .header-period { font-size: 9pt; color: #64748b; }
+
+  .section { margin-bottom: 16pt; }
+  .section-title {
+    font-size: 11pt; font-weight: bold; color: {{ primary_colour }};
+    text-transform: uppercase; letter-spacing: 0.5pt;
+    padding-bottom: 4pt; border-bottom: 1pt solid #e2e8f0;
+    margin-bottom: 8pt;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th {
+    text-align: left; padding: 6pt 8pt; font-weight: bold;
+    background: #f8fafc; color: #475569; font-size: 8pt;
+    text-transform: uppercase; letter-spacing: 0.5pt;
+    border-bottom: 1pt solid #e2e8f0;
+  }
+  td { padding: 5pt 8pt; border-bottom: 0.5pt solid #f1f5f9; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .kpi-grid { display: flex; gap: 8pt; margin-bottom: 16pt; }
+  .kpi-box {
+    flex: 1; padding: 10pt; border: 1pt solid #e2e8f0;
+    border-radius: 6pt; text-align: center;
+  }
+  .kpi-label { font-size: 7pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5pt; }
+  .kpi-value { font-size: 16pt; font-weight: bold; color: #0f172a; margin-top: 2pt; }
+  .kpi-sub { font-size: 7pt; color: #94a3b8; margin-top: 2pt; }
+
+  .text-green { color: #059669; }
+  .text-amber { color: #d97706; }
+  .text-red { color: #dc2626; }
+  .text-right { text-align: right; }
+  .font-bold { font-weight: bold; }
+
+  .badge {
+    display: inline-block; padding: 1pt 6pt; border-radius: 10pt;
+    font-size: 7pt; font-weight: bold; text-transform: uppercase;
+  }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+
+  .confidential {
+    text-align: center; font-size: 7pt; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 1pt;
+    margin-top: 20pt; padding-top: 10pt; border-top: 0.5pt solid #e2e8f0;
+  }
+
+  .cover-page {
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: center; min-height: 80vh; text-align: center;
+  }
+  .cover-title { font-size: 28pt; font-weight: bold; color: {{ primary_colour }}; margin-top: 20pt; }
+  .cover-subtitle { font-size: 14pt; color: #475569; margin-top: 8pt; }
+  .cover-period { font-size: 12pt; color: #94a3b8; margin-top: 16pt; }
+  .cover-institution { font-size: 11pt; color: #64748b; margin-top: 30pt; }
+
+  .page-break { page-break-after: always; }
+</style>
+</head>
+<body>
+{% block content %}{% endblock %}
+<div class="confidential">{{ confidentiality }}</div>
+</body>
+</html>
