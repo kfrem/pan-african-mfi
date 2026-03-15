@@ -1,12 +1,19 @@
 """
 REST API Serializers — Pan-African Microfinance SaaS
-Covers: Tenant setup, User auth, Client CRUD, Loan lifecycle
+Covers: Tenant setup, User auth, Client CRUD, Loan lifecycle, Deposits, Investors,
+        Compliance, Mobile Money, Reports, and Onboarding/Import.
 """
 from rest_framework import serializers
 from apps.tenants.models import Tenant, CountryPack, LicenceTier, Branch, LicenceProfile
 from apps.accounts.models import User, Role, UserRole
 from apps.clients.models import Client, Group, GroupMember, KycDocument
 from apps.loans.models import LoanProduct, Loan, RepaymentSchedule, Repayment
+from apps.deposits.models import DepositProduct, DepositAccount, DepositTransaction
+from apps.investors.models import InvestorProfile, InvestorShareLink
+from apps.compliance.models import AmlAlert, PrudentialReturn
+from apps.mobile_money.models import MobileMoneyProvider, MobileMoneyTransaction
+from apps.reports.models import ReportDefinition, ReportRun
+from apps.onboarding.models import ImportJob
 
 
 # ─── TENANT & CONFIG ───
@@ -282,3 +289,177 @@ class RepaymentCaptureSerializer(serializers.Serializer):
     sync_id = serializers.UUIDField(required=False)
     device_id = serializers.CharField(max_length=100, required=False, default='')
     client_created_at = serializers.DateTimeField(required=False)
+
+
+# ─── DEPOSITS ───
+
+class DepositProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DepositProduct
+        fields = ['id', 'product_code', 'product_name', 'product_type',
+                  'interest_rate_pct', 'min_balance', 'notice_period_days', 'is_active']
+        read_only_fields = ['id']
+
+
+class DepositAccountSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.full_legal_name', read_only=True)
+    product_name = serializers.CharField(source='product.product_name', read_only=True)
+
+    class Meta:
+        model = DepositAccount
+        fields = ['id', 'account_number', 'client', 'client_name', 'product', 'product_name',
+                  'currency', 'balance', 'status', 'opened_at', 'closed_at', 'maturity_date']
+        read_only_fields = ['id', 'account_number', 'balance']
+
+
+class DepositTransactionSerializer(serializers.ModelSerializer):
+    performed_by_name = serializers.CharField(source='performed_by.full_name', read_only=True)
+
+    class Meta:
+        model = DepositTransaction
+        fields = ['id', 'account', 'transaction_type', 'amount', 'balance_after',
+                  'description', 'payment_method', 'reference',
+                  'performed_by', 'performed_by_name', 'created_at']
+        read_only_fields = ['id', 'balance_after', 'performed_by', 'created_at']
+
+
+# ─── INVESTORS ───
+
+class InvestorProfileSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = InvestorProfile
+        fields = ['id', 'investor_name', 'investor_type', 'user', 'user_name', 'user_email',
+                  'investment_currency', 'invested_amount', 'invested_amount_local',
+                  'investment_date', 'exchange_rate_at_investment',
+                  'current_value_local', 'status', 'covenant_thresholds', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class InvestorShareLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvestorShareLink
+        fields = ['id', 'investor_profile', 'token', 'expires_at',
+                  'max_views', 'view_count', 'is_active', 'created_at']
+        read_only_fields = ['id', 'token', 'view_count', 'created_at']
+
+
+# ─── COMPLIANCE ───
+
+class AmlAlertSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.full_legal_name', read_only=True)
+    assigned_to_name = serializers.CharField(source='assigned_to.full_name', read_only=True, default='')
+
+    class Meta:
+        model = AmlAlert
+        fields = ['id', 'client', 'client_name', 'alert_type', 'trigger_description',
+                  'trigger_amount', 'trigger_currency', 'status',
+                  'assigned_to', 'assigned_to_name', 'risk_score',
+                  'review_notes', 'escalated_at', 'closed_at', 'created_at']
+        read_only_fields = ['id', 'created_at', 'escalated_at']
+
+
+class PrudentialReturnSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrudentialReturn
+        fields = ['id', 'return_template_code', 'return_name', 'reporting_period',
+                  'due_date', 'status', 'data', 'submitted_at', 'created_at']
+        read_only_fields = ['id', 'created_at', 'submitted_at']
+
+
+# ─── MOBILE MONEY ───
+
+class MobileMoneyProviderSerializer(serializers.ModelSerializer):
+    country_name = serializers.CharField(source='country.country_name', read_only=True)
+
+    class Meta:
+        model = MobileMoneyProvider
+        fields = ['id', 'provider_code', 'provider_name', 'api_type',
+                  'country', 'country_name', 'currency', 'phone_prefix',
+                  'min_transaction', 'max_transaction', 'is_active']
+        read_only_fields = ['id']
+
+
+class MobileMoneyTransactionSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='client.full_legal_name', read_only=True, default='')
+    provider_name = serializers.CharField(source='provider.provider_name', read_only=True)
+
+    class Meta:
+        model = MobileMoneyTransaction
+        fields = ['id', 'provider', 'provider_name', 'transaction_type', 'direction',
+                  'phone_number', 'amount', 'currency', 'fee_amount',
+                  'client', 'client_name', 'loan', 'internal_reference', 'provider_reference',
+                  'status', 'status_message', 'initiated_at', 'completed_at', 'reconciled']
+        read_only_fields = ['id', 'internal_reference', 'provider_reference',
+                           'initiated_at', 'completed_at', 'reconciled']
+
+
+class CollectRepaymentSerializer(serializers.Serializer):
+    """Initiate a mobile money collection for a loan repayment."""
+    loan_id = serializers.UUIDField()
+    phone_number = serializers.CharField(max_length=20)
+    amount = serializers.DecimalField(max_digits=19, decimal_places=4)
+    provider_code = serializers.CharField(max_length=30)
+    device_id = serializers.CharField(max_length=100, required=False, default='')
+
+
+class DisburseLoanSerializer(serializers.Serializer):
+    """Initiate a mobile money loan disbursement."""
+    loan_id = serializers.UUIDField()
+    phone_number = serializers.CharField(max_length=20)
+    amount = serializers.DecimalField(max_digits=19, decimal_places=4)
+    provider_code = serializers.CharField(max_length=30)
+
+
+# ─── REPORTS ───
+
+class ReportDefinitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportDefinition
+        fields = ['id', 'report_code', 'report_name', 'description',
+                  'category', 'applicable_roles', 'output_formats', 'is_active']
+        read_only_fields = ['id', 'report_code', 'is_system']
+
+
+class ReportRunSerializer(serializers.ModelSerializer):
+    report_name = serializers.CharField(source='report.report_name', read_only=True)
+    report_code = serializers.CharField(source='report.report_code', read_only=True)
+    generated_by_name = serializers.CharField(source='generated_by.full_name', read_only=True, default='')
+
+    class Meta:
+        model = ReportRun
+        fields = ['id', 'report', 'report_name', 'report_code', 'parameters',
+                  'output_format', 'status', 'file_path', 'file_size_bytes',
+                  'generation_time_ms', 'error_message',
+                  'generated_by', 'generated_by_name', 'generated_at', 'expires_at', 'created_at']
+        read_only_fields = ['id', 'status', 'file_path', 'file_size_bytes',
+                           'generation_time_ms', 'error_message',
+                           'generated_by', 'generated_at', 'expires_at', 'created_at']
+
+
+class RequestReportSerializer(serializers.Serializer):
+    """Request an ad-hoc report generation."""
+    report_code = serializers.CharField(max_length=50)
+    output_format = serializers.ChoiceField(choices=['PDF', 'EXCEL', 'CSV'])
+    parameters = serializers.DictField(required=False, default=dict)
+
+
+# ─── ONBOARDING / IMPORT ───
+
+class ImportJobSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.full_name', read_only=True)
+
+    class Meta:
+        model = ImportJob
+        fields = ['id', 'import_type', 'file_name', 'file_size_bytes', 'status',
+                  'total_rows', 'valid_rows', 'error_rows', 'warning_rows',
+                  'validation_errors', 'validation_warnings',
+                  'imported_count', 'skipped_count',
+                  'uploaded_by', 'uploaded_by_name',
+                  'started_at', 'completed_at', 'error_message', 'created_at']
+        read_only_fields = ['id', 'status', 'total_rows', 'valid_rows', 'error_rows',
+                           'warning_rows', 'validation_errors', 'validation_warnings',
+                           'imported_count', 'skipped_count',
+                           'uploaded_by', 'started_at', 'completed_at', 'error_message', 'created_at']

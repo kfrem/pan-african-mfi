@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TrendingUp, TrendingDown, Users, FileText, DollarSign,
   AlertTriangle, Shield, Calendar, Download, RefreshCw,
@@ -10,9 +10,10 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RePie, Pie, Cell
 } from 'recharts';
+import { apiService, type DashboardStats } from '@/lib/api-service';
 
-// ─── Mock Data (replaced by API calls in production) ───
-const kpis = [
+// ─── Mock Data (shown while API data loads or as fallback) ───
+const mockKpis = [
   { label: 'Gross Portfolio', value: 'GHS 5,234,890', trend: '+12.4%', trendUp: true, icon: DollarSign },
   { label: 'Active Loans', value: '1,247', trend: '+34 this month', trendUp: true, icon: FileText },
   { label: 'PAR > 30 Days', value: '3.24%', trend: '-0.8% MoM', trendUp: false, icon: AlertTriangle },
@@ -20,6 +21,24 @@ const kpis = [
   { label: 'Active Clients', value: '2,156', trend: '+89 this month', trendUp: true, icon: Users },
   { label: 'Capital Adequacy', value: '18.2%', trend: 'Min: 10%', trendUp: true, icon: Shield },
 ];
+
+function buildKpisFromStats(stats: DashboardStats, currency = 'GHS') {
+  const portfolio = parseFloat(stats.total_portfolio);
+  const par30 = parseFloat(stats.par30_pct.toString());
+  const fmt = (n: number) =>
+    n >= 1_000_000 ? `${currency} ${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000 ? `${currency} ${(n / 1_000).toFixed(0)}K`
+    : `${currency} ${n.toFixed(0)}`;
+
+  return [
+    { label: 'Gross Portfolio', value: fmt(portfolio), trend: 'Live data', trendUp: true, icon: DollarSign },
+    { label: 'Active Loans', value: String(stats.total_loans), trend: 'Active', trendUp: true, icon: FileText },
+    { label: 'PAR > 30 Days', value: `${par30.toFixed(2)}%`, trend: par30 < 5 ? 'Within limit' : 'Above limit', trendUp: par30 < 5, icon: AlertTriangle },
+    { label: 'Total Arrears', value: fmt(parseFloat(stats.total_arrears)), trend: 'Outstanding', trendUp: false, icon: TrendingDown },
+    { label: 'PAR 30 Balance', value: fmt(parseFloat(stats.par30_balance)), trend: 'At risk', trendUp: false, icon: AlertTriangle },
+    { label: 'Capital Adequacy', value: '—', trend: 'Min: 10%', trendUp: true, icon: Shield },
+  ];
+}
 
 const portfolioTrend = Array.from({ length: 12 }, (_, i) => ({
   month: new Date(2025, i + 2, 1).toLocaleString('en', { month: 'short' }),
@@ -58,6 +77,17 @@ function formatCurrency(value: number): string {
 
 export default function CEODashboard() {
   const [period, setPeriod] = useState<'MTD' | 'QTD' | 'YTD'>('MTD');
+  const [apiStats, setApiStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiService.getDashboardStats().then(stats => {
+      setApiStats(stats);
+      setLoading(false);
+    });
+  }, []);
+
+  const kpis = apiStats ? buildKpisFromStats(apiStats) : mockKpis;
 
   return (
     <div className="space-y-6">

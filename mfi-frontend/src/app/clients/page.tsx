@@ -1,32 +1,13 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Search, Filter, Plus, Download, Upload, ChevronDown,
   Eye, Edit, FileText, Phone, AlertTriangle, Check, X,
-  UserPlus, Users
+  UserPlus, Users, Loader2
 } from 'lucide-react';
 import type { ClientListItem } from '@/types';
-
-// Mock data — replaced by API + offline cache in production
-const mockClients: ClientListItem[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `client-${i}`,
-  client_number: `CL-${String(i + 1).padStart(5, '0')}`,
-  full_legal_name: ['Kwame Asante', 'Ama Mensah', 'Kofi Owusu', 'Abena Boateng', 'Yaw Frimpong',
-    'Adwoa Sarpong', 'Nana Agyemang', 'Efua Darko', 'Kwesi Ampofo', 'Akua Osei',
-    'Emmanuel Tetteh', 'Patience Adjei', 'Samuel Appiah', 'Grace Addo', 'Francis Mensah',
-    'Elizabeth Ankah', 'Daniel Badu', 'Mercy Asantewaa', 'Joseph Ofori', 'Lydia Gyamfi',
-    'Michael Antwi', 'Felicia Boakye', 'Richard Adu', 'Victoria Essien', 'Isaac Bonsu'][i],
-  client_type: i % 5 === 0 ? 'SME' : i % 7 === 0 ? 'GROUP' : 'INDIVIDUAL',
-  phone_primary: `+233 ${20 + (i % 10)}${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
-  kyc_status: i % 8 === 0 ? 'INCOMPLETE' : i % 12 === 0 ? 'EXPIRED' : i % 6 === 0 ? 'COMPLETE' : 'VERIFIED',
-  risk_rating: i % 10 === 0 ? 'HIGH' : i % 4 === 0 ? 'MEDIUM' : 'LOW',
-  branch_name: ['Accra Main', 'Kumasi', 'Tamale', 'Cape Coast'][i % 4],
-  officer_name: ['James Mensah', 'Sarah Asante', 'Peter Owusu', 'Helen Boateng'][i % 4],
-  is_insider: i === 3 || i === 15,
-  is_pep: i === 7,
-  created_at: new Date(2024, i % 12, (i % 28) + 1).toISOString(),
-}));
+import { apiService } from '@/lib/api-service';
 
 const kycColors: Record<string, string> = {
   VERIFIED: 'status-current', COMPLETE: 'text-blue-400 bg-blue-400/15',
@@ -40,19 +21,39 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('');
   const [kycFilter, setKycFilter] = useState<string>('');
   const [branchFilter, setBranchFilter] = useState<string>('');
+  const [clients, setClients] = useState<ClientListItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [apiAvailable, setApiAvailable] = useState(true);
 
-  const filtered = useMemo(() => {
-    return mockClients.filter(c => {
-      if (search && !c.full_legal_name.toLowerCase().includes(search.toLowerCase()) &&
-          !c.client_number.toLowerCase().includes(search.toLowerCase()) &&
-          !c.phone_primary.includes(search)) return false;
-      if (kycFilter && c.kyc_status !== kycFilter) return false;
-      if (branchFilter && c.branch_name !== branchFilter) return false;
-      return true;
+  const loadClients = useCallback(async () => {
+    setLoading(true);
+    const result = await apiService.getClients({
+      search: search || undefined,
+      kyc_status: kycFilter || undefined,
     });
-  }, [search, kycFilter, branchFilter]);
+    if (result) {
+      setClients(result.results as unknown as ClientListItem[]);
+      setTotalCount(result.count);
+      setApiAvailable(true);
+    } else {
+      setApiAvailable(false);
+    }
+    setLoading(false);
+  }, [search, kycFilter]);
 
-  const branches = [...new Set(mockClients.map(c => c.branch_name))];
+  useEffect(() => {
+    const timer = setTimeout(loadClients, 300);
+    return () => clearTimeout(timer);
+  }, [loadClients]);
+
+  // Client-side branch filter when API doesn't support it
+  const filtered = useMemo(() => {
+    if (!branchFilter) return clients;
+    return clients.filter(c => c.branch_name === branchFilter);
+  }, [clients, branchFilter]);
+
+  const branches = [...new Set(clients.map(c => c.branch_name).filter(Boolean))];
 
   return (
     <div className="space-y-5">
@@ -60,7 +61,13 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-content-primary">Clients</h1>
-          <p className="text-sm text-content-muted mt-1">{mockClients.length} total · {filtered.length} shown</p>
+          <p className="text-sm text-content-muted mt-1">
+            {loading ? (
+              <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Loading...</span>
+            ) : (
+              `${totalCount} total · ${filtered.length} shown${!apiAvailable ? ' (offline)' : ''}`
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button className="btn-secondary text-xs"><Upload className="w-3.5 h-3.5" /> Import CSV</button>
