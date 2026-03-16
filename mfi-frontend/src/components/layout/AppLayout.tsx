@@ -45,8 +45,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     item.roles.length === 0 || item.roles.some(r => userRoles.includes(r))
   );
 
-  // Deposit items only visible if tenant can accept deposits
-  const filteredNav = visibleNav; // TODO: filter deposit nav based on licence_tier
+  // Deposit items only visible if tenant licence tier supports deposits
+  const depositTiers = ['STANDARD', 'ENTERPRISE', 'PREMIUM'];
+  const hasDeposits = !tenant?.licence_tier_name || depositTiers.some(t => tenant.licence_tier_name.toUpperCase().includes(t));
+  const filteredNav = hasDeposits ? visibleNav : visibleNav.filter(item => item.href !== '/deposits');
 
   return (
     <div className="flex h-screen overflow-hidden" data-theme={theme}>

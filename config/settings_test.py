@@ -75,3 +75,4 @@ MIDDLEWARE = [
 
 SECRET_KEY = 'test-secret-key-not-for-production'
 DEBUG = True
+ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']

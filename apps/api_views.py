@@ -396,7 +396,7 @@ class LoanViewSet(TenantScopedMixin, viewsets.ModelViewSet):
             interval_days = 1
 
         if loan.interest_method == 'FLAT':
-            total_interest = principal * (rate / 100) * (term / 12)
+            total_interest = principal * (rate / 100) * (Decimal(term) / 12)
             period_principal = principal / periods
             period_interest = total_interest / periods
         else:
@@ -439,7 +439,7 @@ class LoanViewSet(TenantScopedMixin, viewsets.ModelViewSet):
 
             schedules.append(RepaymentSchedule(
                 tenant_id=loan.tenant_id,
-                loan=loan,
+                loan_id=loan.id,
                 instalment_number=i,
                 due_date=due_date,
                 principal_due=p_due,

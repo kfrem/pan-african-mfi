@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield, AlertTriangle, FileText, Calendar, Users, Clock,
   CheckCircle, XCircle, Send, Eye, ChevronRight, Filter
 } from 'lucide-react';
+import { apiService } from '@/lib/api-service';
 
-// ─── Mock Data ───
+// ─── Mock/Fallback Data ───
 const kycOverview = {
   total_clients: 2156,
   verified: 1842,
@@ -49,13 +50,32 @@ const returnStatusColors: Record<string, string> = {
 export default function ComplianceDashboard() {
   const [activeTab, setActiveTab] = useState('alerts');
   const [alertFilter, setAlertFilter] = useState('');
+  const [liveAlerts, setLiveAlerts] = useState(amlAlerts);
+
+  useEffect(() => {
+    apiService.getAmlAlerts().then(res => {
+      if (res?.results?.length) {
+        setLiveAlerts(res.results.map(a => ({
+          id: a.id,
+          client: a.client_name,
+          type: a.alert_type,
+          amount: parseFloat(a.trigger_amount || '0'),
+          currency: 'GHS',
+          status: a.status,
+          risk: a.risk_score || 0,
+          age: new Date(a.created_at).toLocaleDateString(),
+          description: a.trigger_description,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   const filteredAlerts = alertFilter
-    ? amlAlerts.filter(a => a.status === alertFilter)
-    : amlAlerts;
+    ? liveAlerts.filter(a => a.status === alertFilter)
+    : liveAlerts;
 
   const tabs = [
-    { key: 'alerts', label: 'AML Alerts', icon: AlertTriangle, badge: amlAlerts.filter(a => a.status === 'OPEN').length },
+    { key: 'alerts', label: 'AML Alerts', icon: AlertTriangle, badge: liveAlerts.filter(a => a.status === 'OPEN').length },
     { key: 'strs', label: 'STR / CTR', icon: Send, badge: strs.filter(s => s.status === 'DRAFT').length },
     { key: 'kyc', label: 'KYC Status', icon: Users },
     { key: 'calendar', label: 'Regulatory Calendar', icon: Calendar, badge: regulatoryCalendar.filter(r => r.status === 'OVERDUE').length },
@@ -89,7 +109,7 @@ export default function ComplianceDashboard() {
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Open AML Alerts</div>
-          <div className="kpi-value text-status-loss">{amlAlerts.filter(a => a.status === 'OPEN').length}</div>
+          <div className="kpi-value text-status-loss">{liveAlerts.filter(a => a.status === 'OPEN').length}</div>
           <div className="text-xs text-content-muted mt-1">Require review</div>
         </div>
         <div className="kpi-card">

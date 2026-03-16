@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2, Palette, Globe, BookOpen, Package, GitBranch,
@@ -7,6 +7,7 @@ import {
   Check, ChevronRight, ArrowRight, Sparkles
 } from 'lucide-react';
 import type { OnboardingStep } from '@/types';
+import { apiService } from '@/lib/api-service';
 
 const STEPS: { step: string; label: string; description: string; icon: React.ElementType }[] = [
   { step: 'institution_profile', label: 'Set up your institution', description: 'Name, address, and contact details', icon: Building2 },
@@ -29,6 +30,35 @@ export default function OnboardingPage() {
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [skippedSteps, setSkippedSteps] = useState<Set<string>>(new Set());
   const [loadDemo, setLoadDemo] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importStatus, setImportStatus] = useState<'idle' | 'validating' | 'validated' | 'importing' | 'done' | 'error'>('idle');
+  const [importJobId, setImportJobId] = useState<string | null>(null);
+  const [importMessage, setImportMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (file: File) => {
+    setImportFile(file);
+    setImportStatus('validating');
+    setImportMessage('Validating file...');
+    const job = await apiService.validateImport('clients', file);
+    if (!job) {
+      setImportStatus('error');
+      setImportMessage('Validation failed. Please check your file format.');
+      return;
+    }
+    setImportJobId(job.id);
+    setImportStatus('validated');
+    setImportMessage(`${job.valid_rows ?? 0} valid rows, ${job.error_rows ?? 0} errors. Click Import to proceed.`);
+  };
+
+  const handleCommitImport = async () => {
+    if (!importJobId) return;
+    setImportStatus('importing');
+    setImportMessage('Importing...');
+    await apiService.commitImport(importJobId);
+    setImportStatus('done');
+    setImportMessage('Import complete!');
+  };
 
   const current = STEPS[currentStep];
   const progress = (completedSteps.size / STEPS.length) * 100;
@@ -147,27 +177,49 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Step content placeholder — each step would have its own form */}
-            <div className="min-h-[300px] flex items-center justify-center rounded-lg p-8"
-                 style={{ background: '#060a14', border: '1px dashed #1a2744' }}>
-              <div className="text-center">
-                <current.icon className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-                <p className="text-sm text-gray-500">
-                  {current.step === 'institution_profile' && 'Enter your institution name, registration number, and address'}
-                  {current.step === 'upload_logo' && 'Upload your logo (SVG or PNG) and pick your brand colours'}
-                  {current.step === 'country_and_tier' && 'Select Ghana or Zambia — regulatory rules load automatically'}
-                  {current.step === 'chart_of_accounts' && 'We\'ll create a standard chart of accounts for your country — you can customise it later'}
-                  {current.step === 'loan_products' && 'Define your micro-loan, group loan, SME, and emergency loan products'}
-                  {current.step === 'branches' && 'Add your branches — they\'ll be used for portfolio reporting and staff assignment'}
-                  {current.step === 'users_and_roles' && 'Invite loan officers, managers, and other staff by email'}
-                  {current.step === 'first_client' && 'Walk through the client registration form with KYC fields'}
-                  {current.step === 'first_loan' && 'Create a test loan application to see the full workflow'}
-                  {current.step === 'maker_checker' && 'Choose how many approvals are needed for loans, write-offs, and rate changes'}
-                  {current.step === 'sms_setup' && 'Connect Africa\'s Talking for automated repayment SMS reminders'}
-                  {current.step === 'import_data' && 'Upload a CSV of your existing clients and outstanding loans'}
-                </p>
+            {/* Step content */}
+            {current.step === 'import_data' ? (
+              <div className="min-h-[300px] flex flex-col items-center justify-center rounded-lg p-8 gap-4"
+                   style={{ background: '#060a14', border: '1px dashed #1a2744' }}>
+                <Upload className="w-10 h-10 text-gray-500" />
+                <p className="text-sm text-gray-400">Upload a CSV of your existing clients and loans</p>
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx" className="hidden"
+                       onChange={e => { if (e.target.files?.[0]) handleImportFile(e.target.files[0]); }} />
+                <button onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold"
+                        style={{ background: 'rgba(0,102,255,0.15)', color: '#0066ff', border: '1px solid rgba(0,102,255,0.3)' }}>
+                  {importFile ? importFile.name : 'Choose File'}
+                </button>
+                {importMessage && <p className={`text-xs ${importStatus === 'error' ? 'text-red-400' : 'text-gray-400'}`}>{importMessage}</p>}
+                {importStatus === 'validated' && (
+                  <button onClick={handleCommitImport}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold"
+                          style={{ background: '#0066ff', color: '#fff' }}>
+                    Import Data
+                  </button>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="min-h-[300px] flex items-center justify-center rounded-lg p-8"
+                   style={{ background: '#060a14', border: '1px dashed #1a2744' }}>
+                <div className="text-center">
+                  <current.icon className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                  <p className="text-sm text-gray-500">
+                    {current.step === 'institution_profile' && 'Enter your institution name, registration number, and address'}
+                    {current.step === 'upload_logo' && 'Upload your logo (SVG or PNG) and pick your brand colours'}
+                    {current.step === 'country_and_tier' && 'Select Ghana or Zambia — regulatory rules load automatically'}
+                    {current.step === 'chart_of_accounts' && 'We\'ll create a standard chart of accounts for your country — you can customise it later'}
+                    {current.step === 'loan_products' && 'Define your micro-loan, group loan, SME, and emergency loan products'}
+                    {current.step === 'branches' && 'Add your branches — they\'ll be used for portfolio reporting and staff assignment'}
+                    {current.step === 'users_and_roles' && 'Invite loan officers, managers, and other staff by email'}
+                    {current.step === 'first_client' && 'Walk through the client registration form with KYC fields'}
+                    {current.step === 'first_loan' && 'Create a test loan application to see the full workflow'}
+                    {current.step === 'maker_checker' && 'Choose how many approvals are needed for loans, write-offs, and rate changes'}
+                    {current.step === 'sms_setup' && 'Connect Africa\'s Talking for automated repayment SMS reminders'}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex items-center justify-between mt-6">

@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   ClipboardList, MapPin, DollarSign, Users, Clock, CheckCircle,
-  AlertTriangle, Phone, ChevronRight, Plus, Smartphone, Wifi, WifiOff
+  AlertTriangle, Phone, ChevronRight, Plus, Smartphone, Wifi, WifiOff, RefreshCw
 } from 'lucide-react';
 import { useUIStore } from '@/stores';
+import { apiService } from '@/lib/api-service';
 
 // ─── Mock Data ───
 const todaysTasks = [
@@ -44,6 +45,27 @@ function formatGHS(v: number) { return `GHS ${v.toLocaleString()}`; }
 export default function LoanOfficerDashboard() {
   const { isOffline } = useUIStore();
   const [activeTab, setActiveTab] = useState<'workqueue' | 'portfolio' | 'capture'>('workqueue');
+  const [captureForm, setCaptureForm] = useState({ loan_id: '', amount: '', method: 'CASH' });
+  const [captureStatus, setCaptureStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  const handleCapture = async () => {
+    if (!captureForm.loan_id || !captureForm.amount) return;
+    setCaptureStatus('saving');
+    try {
+      await apiService.captureRepayment({
+        loan_id: captureForm.loan_id,
+        amount: captureForm.amount,
+        payment_method: captureForm.method,
+        received_at: new Date().toISOString(),
+      });
+      setCaptureStatus('success');
+      setCaptureForm({ loan_id: '', amount: '', method: 'CASH' });
+      setTimeout(() => setCaptureStatus('idle'), 3000);
+    } catch {
+      setCaptureStatus('error');
+      setTimeout(() => setCaptureStatus('idle'), 3000);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -175,6 +197,8 @@ export default function LoanOfficerDashboard() {
                 Client / Loan Number
               </label>
               <input type="text" placeholder="Search by name or loan number..."
+                     value={captureForm.loan_id}
+                     onChange={e => setCaptureForm(f => ({ ...f, loan_id: e.target.value }))}
                      className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-bg border border-surface-border text-content-primary" />
             </div>
             <div>
@@ -182,6 +206,8 @@ export default function LoanOfficerDashboard() {
                 Amount (GHS)
               </label>
               <input type="number" placeholder="0.00"
+                     value={captureForm.amount}
+                     onChange={e => setCaptureForm(f => ({ ...f, amount: e.target.value }))}
                      className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-bg border border-surface-border text-content-primary" />
             </div>
             <div>
@@ -194,15 +220,22 @@ export default function LoanOfficerDashboard() {
                   { method: 'MOBILE_MONEY', label: 'Mobile Money', icon: Smartphone },
                 ].map(m => (
                   <button key={m.method}
-                          className="flex items-center gap-2 px-4 py-3 rounded-lg text-xs font-semibold border border-surface-border hover:border-brand-primary transition-colors text-content-primary">
+                          onClick={() => setCaptureForm(f => ({ ...f, method: m.method }))}
+                          className={`flex items-center gap-2 px-4 py-3 rounded-lg text-xs font-semibold border transition-colors text-content-primary ${captureForm.method === m.method ? 'border-brand-primary' : 'border-surface-border hover:border-brand-primary'}`}>
                     <m.icon className="w-4 h-4" />
                     {m.label}
                   </button>
                 ))}
               </div>
             </div>
-            <button className="btn-primary w-full justify-center mt-2">
-              {isOffline ? (
+            {captureStatus === 'success' && <p className="text-xs text-status-current text-center">Payment recorded successfully.</p>}
+            {captureStatus === 'error' && <p className="text-xs text-status-loss text-center">Failed to record payment. Please try again.</p>}
+            <button className="btn-primary w-full justify-center mt-2"
+                    onClick={handleCapture}
+                    disabled={captureStatus === 'saving'}>
+              {captureStatus === 'saving' ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /> Saving...</>
+              ) : isOffline ? (
                 <><WifiOff className="w-4 h-4" /> Save Offline</>
               ) : (
                 <><CheckCircle className="w-4 h-4" /> Record Payment</>

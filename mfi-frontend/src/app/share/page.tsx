@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -14,7 +14,7 @@ import { Lock, Eye, EyeOff } from 'lucide-react';
  * 4. Increment view_count
  * 5. If expired or max_views exceeded, show expiry message
  */
-export default function SharePage() {
+function SharePageInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [status, setStatus] = useState<'loading' | 'password' | 'valid' | 'expired' | 'invalid'>('loading');
@@ -91,7 +91,6 @@ export default function SharePage() {
   }
 
   // Valid — render the investor dashboard
-  // In production, this imports the full InvestorDashboard component with real data
   return (
     <div style={{ background: '#060a14', minHeight: '100vh', color: '#e2e8f0', padding: 24 }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -118,5 +117,17 @@ export default function SharePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SharePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#060a14' }}>
+        <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SharePageInner />
+    </Suspense>
   );
 }

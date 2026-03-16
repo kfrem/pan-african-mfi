@@ -18,6 +18,9 @@ from celery import shared_task
 from django.utils import timezone
 from django.db.models import Sum, F, Q
 
+from apps.tenants.models import Tenant
+from apps.loans.models import Loan
+
 logger = logging.getLogger(__name__)
 
 
@@ -514,8 +517,6 @@ def generate_queued_reports():
 
 def _get_report_context(run) -> dict:
     """Build the template/data context for a report run."""
-    from apps.tenants.models import Tenant
-    from apps.loans.models import Loan
     from django.db.models import Sum, Count, Avg
 
     tenant = Tenant.objects.select_related('country', 'licence_tier').get(id=run.tenant_id)
@@ -530,9 +531,9 @@ def _get_report_context(run) -> dict:
         total_loans=Count('id'),
         avg_rate=Avg('interest_rate_pct'),
     )
-    par30 = active_loans.filter(days_past_due__gte=30).aggregate(
-        par30_balance=Sum('outstanding_principal')
-    )
+    par30 = Loan.objects.filter(
+        tenant=tenant, status__in=['ACTIVE', 'DISBURSED'], days_past_due__gte=30
+    ).aggregate(par30_balance=Sum('outstanding_principal'))
     portfolio = stats['total_portfolio'] or Decimal('0')
     par30_bal = par30['par30_balance'] or Decimal('0')
     par30_pct = float(par30_bal / portfolio * 100) if portfolio > 0 else 0.0
@@ -558,7 +559,6 @@ def _get_report_context(run) -> dict:
     loan_id = params.get('loan_id')
     if loan_id:
         try:
-            from apps.loans.models import Loan
             loan = Loan.objects.select_related(
                 'client', 'product', 'loan_officer', 'branch'
             ).get(id=loan_id, tenant=tenant)
@@ -678,8 +678,6 @@ def _generate_excel_report(run) -> tuple:
         )
         return storage_path, 1
 
-    from apps.tenants.models import Tenant
-    from apps.loans.models import Loan
     from django.db.models import Sum, Count
 
     tenant = Tenant.objects.get(id=run.tenant_id)
@@ -758,9 +756,6 @@ def _generate_csv_report(run) -> tuple:
     import io
     import os
     import tempfile
-
-    from apps.tenants.models import Tenant
-    from apps.loans.models import Loan
 
     tenant = Tenant.objects.get(id=run.tenant_id)
 

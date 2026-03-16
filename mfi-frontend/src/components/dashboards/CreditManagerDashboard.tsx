@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle, Clock, AlertTriangle, Shield, ThumbsUp, ThumbsDown,
   PieChart, Users, BarChart3
@@ -8,6 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
 } from 'recharts';
+import { apiService } from '@/lib/api-service';
 
 const pendingApprovals = [
   { id: '1', loan: 'LN-202603-00089', client: 'Emmanuel Tetteh', product: 'SME Working Capital', amount: 35000, currency: 'GHS', term: 12, rate: 28, dti: 38, score: 72, risk: 'ACCEPTABLE', officer: 'James Mensah', days_pending: 2, insider: false, override: false },
@@ -42,22 +43,56 @@ function fmt(v: number) { return `GHS ${v.toLocaleString()}`; }
 
 export default function CreditManagerDashboard() {
   const [tab, setTab] = useState('pipeline');
+  const [livePending, setLivePending] = useState(pendingApprovals);
   const totalProv = provisioningSummary.reduce((s, p) => s + p.provision, 0);
   const totalOut = provisioningSummary.reduce((s, p) => s + p.outstanding, 0);
+
+  useEffect(() => {
+    apiService.getLoans({ status: 'APPLIED' }).then(res => {
+      if (res?.results?.length) {
+        setLivePending(res.results.map(l => ({
+          id: l.id,
+          loan: l.loan_number,
+          client: l.client_name,
+          product: l.product_name,
+          amount: parseFloat(l.principal_amount),
+          currency: l.currency,
+          term: 0,
+          rate: 0,
+          dti: 0,
+          score: 0,
+          risk: 'ACCEPTABLE',
+          officer: l.officer_name,
+          days_pending: 0,
+          insider: false,
+          override: false,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleApprove = async (loanId: string) => {
+    try {
+      await apiService.approveLoan(loanId);
+      setLivePending(prev => prev.filter(l => l.id !== loanId));
+    } catch (err) {
+      console.warn('Approve failed', err);
+    }
+  };
 
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-content-primary">Credit Manager Dashboard</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="kpi-card"><div className="kpi-label">Pending Approval</div><div className="kpi-value text-status-watch">{pendingApprovals.length}</div></div>
+        <div className="kpi-card"><div className="kpi-label">Pending Approval</div><div className="kpi-value text-status-watch">{livePending.length}</div></div>
         <div className="kpi-card"><div className="kpi-label">Total Provisions</div><div className="kpi-value">{fmt(totalProv)}</div></div>
         <div className="kpi-card"><div className="kpi-label">NPL Ratio</div><div className="kpi-value text-status-watch">4.1%</div></div>
         <div className="kpi-card"><div className="kpi-label">Coverage Ratio</div><div className="kpi-value">{(totalProv / totalOut * 100).toFixed(1)}%</div></div>
       </div>
 
       <div className="flex gap-1 border-b border-surface-border">
-        {[{k:'pipeline',l:'Pipeline',b:pendingApprovals.length},{k:'provisioning',l:'Provisioning'},{k:'concentration',l:'Concentration'}].map(t=>(
+        {[{k:'pipeline',l:'Pipeline',b:livePending.length},{k:'provisioning',l:'Provisioning'},{k:'concentration',l:'Concentration'}].map(t=>(
           <button key={t.k} onClick={()=>setTab(t.k)} className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 ${tab===t.k?'border-brand-primary text-content-primary':'border-transparent text-content-muted'}`}>
             {t.l}{t.b&&<span className="ml-1 w-5 h-5 bg-status-watch text-white text-xs font-bold rounded-full flex items-center justify-center">{t.b}</span>}
           </button>
@@ -66,7 +101,7 @@ export default function CreditManagerDashboard() {
 
       {tab === 'pipeline' && (
         <div className="space-y-3">
-          {pendingApprovals.map(loan => (
+          {livePending.map(loan => (
             <div key={loan.id} className="card">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -89,7 +124,7 @@ export default function CreditManagerDashboard() {
               </div>
               <div className="flex justify-end gap-2">
                 <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-status-loss hover:bg-status-loss/10"><ThumbsDown className="w-3.5 h-3.5"/>Reject</button>
-                <button className="btn-primary text-xs"><ThumbsUp className="w-3.5 h-3.5"/>Approve</button>
+                <button className="btn-primary text-xs" onClick={() => handleApprove(loan.id)}><ThumbsUp className="w-3.5 h-3.5"/>Approve</button>
               </div>
             </div>
           ))}

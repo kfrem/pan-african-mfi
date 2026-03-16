@@ -40,7 +40,7 @@ class MobileMoneyTransaction(TenantModel, SyncModel):
     ]
     transaction_type = models.CharField(max_length=20, choices=TXN_TYPE_CHOICES)
     DIRECTION_CHOICES = [('IN', 'Inbound'), ('OUT', 'Outbound')]
-    direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES)
+    direction = models.CharField(max_length=3, choices=DIRECTION_CHOICES)
     phone_number = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=19, decimal_places=4)
     currency = models.CharField(max_length=3)
