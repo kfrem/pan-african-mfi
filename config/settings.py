@@ -30,7 +30,12 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-IN-PRODUCTION')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+_allowed = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Railway injects RAILWAY_PUBLIC_DOMAIN automatically
+_railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+if _railway_domain:
+    _allowed.append(_railway_domain)
+ALLOWED_HOSTS = _allowed
 
 # Application definition
 INSTALLED_APPS = [
@@ -65,6 +70,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -178,6 +184,10 @@ USE_TZ = True
 # Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
