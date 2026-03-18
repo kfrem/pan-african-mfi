@@ -8,7 +8,7 @@ WORKDIR /app
 # System dependencies for weasyprint (PDF generation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libpq-dev libcairo2-dev libpango1.0-dev \
-    libgdk-pixbuf2.0-dev libffi-dev shared-mime-info \
+    libffi-dev shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
