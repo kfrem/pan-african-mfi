@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   BookOpen, Calculator, CheckSquare, FileText, Download,
-  Lock, Unlock, AlertTriangle, Search, ChevronRight, TrendingUpt
+  Lock, Unlock, AlertTriangle, Search, ChevronRight, TrendingUp
 } from 'lucide-react';
 
 const trialBalance = [
