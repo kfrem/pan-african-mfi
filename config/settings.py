@@ -11,7 +11,12 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-ME-IN-PRODUCTION')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Accept explicit list, or fall back to allowing all Railway subdomains + localhost
+_allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '')
+if _allowed_hosts_env:
+    ALLOWED_HOSTS = _allowed_hosts_env.split(',')
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', '.up.railway.app']
 
 # Application definition
 INSTALLED_APPS = [
@@ -128,6 +133,11 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:3000'
 ).split(',')
+# Also allow any Railway subdomain (covers preview + production URLs)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://.*\.railway\.app$',
+    r'^https://.*\.up\.railway\.app$',
+]
 
 # Celery — task queue for background jobs
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
@@ -143,6 +153,9 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 if not DEBUG:
+    # Tell Django it sits behind Railway's SSL-terminating proxy.
+    # Without this, Django never sees HTTPS and redirects every request → 500.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
