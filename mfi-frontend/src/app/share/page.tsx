@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -14,7 +14,7 @@ import { Lock, Eye, EyeOff } from 'lucide-react';
  * 4. Increment view_count
  * 5. If expired or max_views exceeded, show expiry message
  */
-export default function SharePage() {
+function SharePageInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [status, setStatus] = useState<'loading' | 'password' | 'valid' | 'expired' | 'invalid'>('loading');
@@ -118,5 +118,20 @@ export default function SharePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SharePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#060a14' }}>
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400 text-sm">Verifying access...</p>
+        </div>
+      </div>
+    }>
+      <SharePageInner />
+    </Suspense>
   );
 }
