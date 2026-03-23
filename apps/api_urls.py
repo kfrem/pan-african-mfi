@@ -4,6 +4,7 @@ All endpoints under /api/v1/
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from apps.notifications.ussd_handler import ussd_callback
 from apps.api_views import (
     CountryPackViewSet, LicenceTierViewSet,
     TenantViewSet, BranchViewSet,
@@ -39,7 +40,7 @@ router.register(r'repayments', RepaymentViewSet, basename='repayments')
 urlpatterns = [
     path('', include(router.urls)),
     # USSD callback (Africa's Talking)
-    path('ussd/callback', 'apps.notifications.ussd_handler.ussd_callback', name='ussd-callback'),
+    path('ussd/callback', ussd_callback, name='ussd-callback'),
 ]
 
 # ─── ENDPOINT SUMMARY ───
