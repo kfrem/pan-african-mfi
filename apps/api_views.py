@@ -388,10 +388,13 @@ class LoanViewSet(TenantScopedMixin, viewsets.ModelViewSet):
             periods = term * 30
             interval_days = 1
 
+        periods_d = Decimal(periods)
+        term_d = Decimal(term)
+
         if loan.interest_method == 'FLAT':
-            total_interest = principal * (rate / 100) * (term / 12)
-            period_principal = principal / periods
-            period_interest = total_interest / periods
+            total_interest = principal * (rate / 100) * (term_d / 12)
+            period_principal = principal / periods_d
+            period_interest = total_interest / periods_d
         else:
             monthly_rate = rate / 100 / 12
             if monthly_rate > 0:
@@ -407,7 +410,7 @@ class LoanViewSet(TenantScopedMixin, viewsets.ModelViewSet):
 
                 payment = principal * (period_rate * (1 + period_rate)**periods) / ((1 + period_rate)**periods - 1)
             else:
-                payment = principal / periods
+                payment = principal / periods_d
                 period_rate = Decimal(0)
 
         balance = principal
